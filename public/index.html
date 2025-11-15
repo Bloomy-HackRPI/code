@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bloomy Stock Sentiment Dashboard</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-content">
+                <div class="logo">
+                    <i class="fas fa-chart-line"></i>
+                    <h1>Bloomy Stock Sentiment</h1>
+                </div>
+                <div class="last-update" id="lastUpdate">
+                    Last update: Never
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Current Analysis Card -->
+            <div class="analysis-card">
+                <div class="card-header">
+                    <h2 id="stockSymbol">Waiting for analysis...</h2>
+                    <div class="sentiment-badge" id="sentimentBadge">
+                        <span id="sentimentText">-</span>
+                    </div>
+                </div>
+
+                <div class="analysis-text" id="analysisText">
+                    No analysis data available. Send a stock command to your Bloomy bot on Discord.
+                </div>
+
+                <!-- Confidence Scores -->
+                <div class="confidence-section">
+                    <h3>Confidence Scores</h3>
+                    <div class="confidence-bars">
+                        <div class="confidence-item positive">
+                            <div class="confidence-label">
+                                <i class="fas fa-arrow-up"></i>
+                                <span>Positive</span>
+                            </div>
+                            <div class="confidence-bar">
+                                <div class="confidence-fill" id="positiveBar" style="width: 0%"></div>
+                                <span class="confidence-percent" id="positivePercent">0%</span>
+                            </div>
+                        </div>
+
+                        <div class="confidence-item negative">
+                            <div class="confidence-label">
+                                <i class="fas fa-arrow-down"></i>
+                                <span>Negative</span>
+                            </div>
+                            <div class="confidence-bar">
+                                <div class="confidence-fill" id="negativeBar" style="width: 0%"></div>
+                                <span class="confidence-percent" id="negativePercent">0%</span>
+                            </div>
+                        </div>
+
+                        <div class="confidence-item neutral">
+                            <div class="confidence-label">
+                                <i class="fas fa-minus"></i>
+                                <span>Neutral</span>
+                            </div>
+                            <div class="confidence-bar">
+                                <div class="confidence-fill" id="neutralBar" style="width: 0%"></div>
+                                <span class="confidence-percent" id="neutralPercent">0%</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Data Source -->
+                <div class="data-source">
+                    <i class="fas fa-database"></i>
+                    <span id="dataSource">Powered by: Waiting for data...</span>
+                </div>
+            </div>
+
+            <!-- Instructions -->
+            <div class="instructions-card">
+                <h3>How to Use</h3>
+                <div class="instructions">
+                    <div class="instruction-item">
+                        <i class="fas fa-discord"></i>
+                        <span>Go to your Discord server</span>
+                    </div>
+                    <div class="instruction-item">
+                        <i class="fas fa-terminal"></i>
+                        <span>Type <code>!stock TICKER</code> or mention Bloomy with a stock symbol</span>
+                    </div>
+                    <div class="instruction-item">
+                        <i class="fas fa-sync"></i>
+                        <span>This dashboard will update automatically</span>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Footer -->
+        <footer class="footer">
+            <p>Real-time Stock Sentiment Analysis | Connected to Bloomy Bot</p>
+        </footer>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
