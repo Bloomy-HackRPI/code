@@ -1,0 +1,11 @@
+# hides npm packages
+node_modules
+*/node_modules
+
+# hides virtual environments
+VirtualEnvironment
+*/VirtualEnvironment
+
+# hides env files
+.env
+*/.env
