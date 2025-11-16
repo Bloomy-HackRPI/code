@@ -10,8 +10,8 @@ class IntentClassifier:
 
     def __init__(self):
 
-        directory = '/data'
-        os.makedirs(directory, exist_ok=True)
+        self.dir = 'model/data'
+        os.makedirs(self.dir, exist_ok=True)
 
         self.encoder = LabelEncoder()
         self.tokenizer = AutoTokenizer.from_pretrained("distilbert-base-uncased")
@@ -19,26 +19,26 @@ class IntentClassifier:
             "distilbert-base-uncased", num_labels=3
         )
 
-        if all(os.path.exists(path) for path in ['/data/model', '/data/tokenizer', '/data/encoder.pkl']):
+        if all(os.path.exists(path) for path in [self.dir + '/model', self.dir + '/tokenizer', self.dir + '/encoder.pkl']):
             self.load()
         else:
             self.train()
             self.load()
 
     def load(self):
-        self.tokenizer = AutoTokenizer.from_pretrained('/data/tokenizer')
-        self.model = AutoModelForSequenceClassification.from_pretrained('/data/model')
-        with open('/data/encoder.pkl', "rb") as f:
+        self.tokenizer = AutoTokenizer.from_pretrained(self.dir + '/tokenizer')
+        self.model = AutoModelForSequenceClassification.from_pretrained(self.dir + '/model')
+        with open(self.dir + '/encoder.pkl', "rb") as f:
             self.encoder = pickle.load(f)
         print("Loaded model, tokenizer, and encoder from disk.")
 
 
     def save(self):
-        self.model.save_pretrained('/data/model')
-        self.tokenizer.save_pretrained('/data/tokenizer')
-        with open('/data/encoder.pkl', "wb") as f:
+        self.model.save_pretrained(self.dir + '/model')
+        self.tokenizer.save_pretrained(self.dir + '/tokenizer')
+        with open(self.dir + '/encoder.pkl', "wb") as f:
             pickle.dump(self.encoder, f)
-        print(f"Model, tokenizer, and encoder saved to {'/data'}.")
+        print(f"Model, tokenizer, and encoder saved to {self.dir}.")
 
 
     def getIntent(self, message):
@@ -56,7 +56,7 @@ class IntentClassifier:
 
     def train(self):
         
-        with open('train.json', 'r') as f:
+        with open(self.dir + '/train.json', 'r') as f:
             data = json.load(f)
 
         sentences, labels = [sample['sentence'] for sample in data], [sample['intent'] for sample in data]
@@ -72,9 +72,9 @@ class IntentClassifier:
             num_train_epochs=5,
             logging_steps=1,
             logging_dir="./logs",
-            save_strategy="epoch",   # save at each epoch
-            save_total_limit=1,      # keep only the last checkpoint
-            no_cuda=True
+            save_strategy="no",   # save at each epoch
+            save_total_limit=1,   # keep only the last checkpoint
+            use_cpu=True
         )
 
         trainer = Trainer(
@@ -91,4 +91,4 @@ class IntentClassifier:
         self.save()
 
     def tokenize(self, sample):
-        return self.tokenizer(sample["text"], padding=True, batched=True)
+        return self.tokenizer(sample["text"], padding=True, truncation=True)

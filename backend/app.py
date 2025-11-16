@@ -4,10 +4,11 @@ from model.llm import ExtractorGPT
 app = Flask(__name__)
 
 # ping to test connection
-@app.route("/", methods=["GET"])
+@app.route("/test", methods=["GET"])
 def serve():
     """serve frontend"""
     return "success", 200
+
 
 # upload route for chat
 @app.route("/api", methods=["POST"])
