@@ -1,5 +1,6 @@
 from flask import Flask, request, jsonify
-from model import classifier, llm
+from model.classifier import IntentClassifier
+from model.llm import ExtractorGPT
 app = Flask(__name__)
 
 # ping to test connection
@@ -28,4 +29,6 @@ def chat():
 
     
 if __name__ == "__main__":
+    classifier = IntentClassifier()
+    llm = ExtractorGPT()
     app.run(port=4000)

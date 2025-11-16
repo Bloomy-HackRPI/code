@@ -3,11 +3,14 @@ from dotenv import load_dotenv
 import openai
 
 # Load environment variables from .env
-load_dotenv()
-openai.api_key = os.getenv("OPENAI_API_KEY")
 
+class ExtractorGPT:
 
-intentToPrompt = {
+    def __init__(self):
+        """Upon initialization, load the env and the intent-prompt mapping"""
+        load_dotenv()
+        openai.api_key = os.getenv("OPENAI_API_KEY")
+        self.intentToPrompt = {
     'stat': """
     You are an assistant that converts natural-language sentences about a company's financials into Bloomberg terminal query keywords.
 
@@ -99,6 +102,44 @@ intentToPrompt = {
 
 """
 }
+
+
+    def getPrompt(self, intent, query):
+        """Construct the prompt and insert the intent and query"""
+        prompt = self.intentToPrompt[intent]
+        prompt += f"""
+
+        Intent: {intent}
+        Query: {query}    
+
+        """
+        
+        return prompt
+
+    def sendPrompt(self, prompt):
+        """Send a request to openai API"""
+        try:
+            response = openai.responses.create(
+                model="gpt-3.5-turbo",
+                input=prompt,
+                temperature=0
+            )
+            # The output text is in response.output_text
+            return response.output_text.strip()
+        except Exception as e:
+            print(f"Error calling OpenAI API: {e}")
+            return None
+    
+    def parseParameters(self, message, intent):
+        """Wrapper for all of the functions"""
+        prompt = self.getPrompt(message, intent)
+        parameters = self.sendPrompt(prompt)
+        return parameters
+        
+
+
+
+
 
 def sendPrompt(prompt):
     try:
