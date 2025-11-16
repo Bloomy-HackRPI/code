@@ -1,0 +1,357 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+:root {
+    --bg-primary: #0f0f23;
+    --bg-secondary: #1a1a2e;
+    --bg-card: #16213e;
+    --accent: #00d4ff;
+    --accent-hover: #00b8e6;
+    --text-primary: #ffffff;
+    --text-secondary: #b0b0b0;
+    --positive: #00ff88;
+    --negative: #ff4444;
+    --neutral: #ffaa00;
+    --border: #2d3748;
+    --shadow: rgba(0, 0, 0, 0.3);
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: linear-gradient(135deg, var(--bg-primary) 0%, var(--bg-secondary) 100%);
+    color: var(--text-primary);
+    min-height: 100vh;
+    line-height: 1.6;
+}
+
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Header */
+.header {
+    background: var(--bg-card);
+    border-radius: 15px;
+    padding: 20px 30px;
+    margin-bottom: 30px;
+    border: 1px solid var(--border);
+    box-shadow: 0 8px 32px var(--shadow);
+}
+
+.header-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 20px;
+}
+
+.logo {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.logo i {
+    font-size: 2.5rem;
+    color: var(--accent);
+}
+
+.logo h1 {
+    font-size: 2rem;
+    font-weight: 700;
+    background: linear-gradient(135deg, var(--accent), #00ff88);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.last-update {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+}
+
+/* Main Content */
+.main-content {
+    flex: 1;
+    display: grid;
+    grid-template-columns: 1fr 400px;
+    gap: 30px;
+    align-items: start;
+}
+
+/* Analysis Card */
+.analysis-card {
+    background: var(--bg-card);
+    border-radius: 15px;
+    padding: 30px;
+    border: 1px solid var(--border);
+    box-shadow: 0 8px 32px var(--shadow);
+}
+
+.card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 25px;
+    flex-wrap: wrap;
+    gap: 15px;
+}
+
+.card-header h2 {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.sentiment-badge {
+    padding: 10px 20px;
+    border-radius: 25px;
+    font-weight: 600;
+    font-size: 1.1rem;
+    background: var(--neutral);
+    color: var(--bg-primary);
+    transition: all 0.3s ease;
+}
+
+.sentiment-badge.very-bullish {
+    background: linear-gradient(135deg, var(--positive), #00cc77);
+    color: white;
+}
+
+.sentiment-badge.bullish {
+    background: var(--positive);
+    color: var(--bg-primary);
+}
+
+.sentiment-badge.slightly-bullish {
+    background: linear-gradient(135deg, var(--positive), var(--neutral));
+    color: var(--bg-primary);
+}
+
+.sentiment-badge.neutral {
+    background: var(--neutral);
+    color: var(--bg-primary);
+}
+
+.sentiment-badge.slightly-bearish {
+    background: linear-gradient(135deg, var(--neutral), var(--negative));
+    color: white;
+}
+
+.sentiment-badge.bearish {
+    background: var(--negative);
+    color: white;
+}
+
+.sentiment-badge.very-bearish {
+    background: linear-gradient(135deg, var(--negative), #cc0000);
+    color: white;
+}
+
+.analysis-text {
+    font-size: 1.2rem;
+    color: var(--text-secondary);
+    margin-bottom: 30px;
+    line-height: 1.6;
+}
+
+/* Confidence Section */
+.confidence-section h3 {
+    margin-bottom: 20px;
+    color: var(--text-primary);
+    font-size: 1.3rem;
+}
+
+.confidence-bars {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.confidence-item {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.confidence-label {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100px;
+    font-weight: 600;
+}
+
+.confidence-label i {
+    width: 20px;
+    text-align: center;
+}
+
+.confidence-item.positive .confidence-label {
+    color: var(--positive);
+}
+
+.confidence-item.negative .confidence-label {
+    color: var(--negative);
+}
+
+.confidence-item.neutral .confidence-label {
+    color: var(--neutral);
+}
+
+.confidence-bar {
+    flex: 1;
+    background: var(--bg-secondary);
+    height: 30px;
+    border-radius: 15px;
+    position: relative;
+    overflow: hidden;
+    border: 1px solid var(--border);
+}
+
+.confidence-fill {
+    height: 100%;
+    border-radius: 15px;
+    transition: width 1s ease-in-out;
+    position: relative;
+}
+
+.confidence-item.positive .confidence-fill {
+    background: linear-gradient(90deg, var(--positive), #00cc77);
+}
+
+.confidence-item.negative .confidence-fill {
+    background: linear-gradient(90deg, var(--negative), #cc0000);
+}
+
+.confidence-item.neutral .confidence-fill {
+    background: linear-gradient(90deg, var(--neutral), #ff9900);
+}
+
+.confidence-percent {
+    position: absolute;
+    right: 15px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: var(--text-primary);
+    text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+}
+
+/* Data Source */
+.data-source {
+    margin-top: 25px;
+    padding-top: 20px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+}
+
+.data-source i {
+    color: var(--accent);
+}
+
+/* Instructions Card */
+.instructions-card {
+    background: var(--bg-card);
+    border-radius: 15px;
+    padding: 25px;
+    border: 1px solid var(--border);
+    box-shadow: 0 8px 32px var(--shadow);
+}
+
+.instructions-card h3 {
+    margin-bottom: 20px;
+    color: var(--text-primary);
+    font-size: 1.3rem;
+}
+
+.instructions {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.instruction-item {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    padding: 12px;
+    background: var(--bg-secondary);
+    border-radius: 10px;
+    border: 1px solid var(--border);
+}
+
+.instruction-item i {
+    color: var(--accent);
+    width: 20px;
+    text-align: center;
+}
+
+.instruction-item code {
+    background: var(--bg-primary);
+    padding: 4px 8px;
+    border-radius: 6px;
+    font-family: 'Courier New', monospace;
+    color: var(--accent);
+    border: 1px solid var(--border);
+}
+
+/* Footer */
+.footer {
+    margin-top: 40px;
+    text-align: center;
+    padding: 20px;
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    border-top: 1px solid var(--border);
+}
+
+/* Animations */
+@keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+    100% { transform: scale(1); }
+}
+
+.pulse {
+    animation: pulse 0.5s ease-in-out;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .main-content {
+        grid-template-columns: 1fr;
+    }
+    
+    .header-content {
+        flex-direction: column;
+        text-align: center;
+    }
+    
+    .card-header {
+        flex-direction: column;
+        text-align: center;
+    }
+    
+    .container {
+        padding: 15px;
+    }
+    
+    .logo h1 {
+        font-size: 1.5rem;
+    }
+}
