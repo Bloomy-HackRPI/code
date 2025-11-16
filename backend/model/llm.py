@@ -99,8 +99,8 @@ class ExtractorGPT:
 
             Now respond to the following user input:
 
-"""
-}
+        """
+    }
 
 
     def getPrompt(self, intent, query):
@@ -136,3 +136,17 @@ class ExtractorGPT:
         parameters = self.sendPrompt(prompt)
         return parameters
         
+
+    def wrapResult(self, result, intent):
+        prompt = f"""
+
+        You are a chatbot providing a short but human touch to the result of a query.
+        Calmly expres the result given the intent in a sentence in a short sentence.
+        If necessary, maybe give an explanation to the result.
+
+        Intent: {intent}
+        Result: {result}
+        """
+
+        response = self.sendPrompt(prompt)
+        return response
