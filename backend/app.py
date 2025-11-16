@@ -26,7 +26,7 @@ async def chat():
         
         params = llm.parseParameters(intent, message)
         print(params)
-        
+
         async with httpx.AsyncClient() as client:
 
             endpoint = None
@@ -37,7 +37,7 @@ async def chat():
             else:
                 endpoint = '/ping'
 
-            resp = await client.post(f"https://60434d3ecd84.ngrok-free.app{endpoint}", json=params)
+            resp = await client.post(f"https://60434d3ecd84.ngrok-free.app{endpoint}", json=params, headers={"Content-Type": "application/json"})
             bloomberg = resp.json()
 
         return jsonify(bloomberg), 200

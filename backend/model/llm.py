@@ -1,6 +1,7 @@
 import os
 from dotenv import load_dotenv
 import openai
+import json
 
 
 class ExtractorGPT:
@@ -11,14 +12,48 @@ class ExtractorGPT:
         openai.api_key = os.getenv("OPENAI_API_KEY")
         self.intentToPrompt = {
             'get_stat': """
-            You are an assistant that converts natural-language sentences about a company's financials into Bloomberg terminal query keywords.
+            You are a financial assistant that converts user questions into Bloomberg API queries.
+            You must ALWAYS output only valid JSON. Never include explanations.
 
-            Instructions:
-            1. Identify the company and return its **official ticker symbol** if obvious.
-            2. Identify the financial metric and return the **Bloomberg-style field** (e.g., NET_INC for net income, REV for revenue, EPS for earnings per share, etc.).
-            3. Identify the time range and return it in a **Bloomberg-compatible format** (e.g., FY2023, Q1 2024, LAST_YEAR, LAST_QUARTER).
-            4. Return **JSON only**, with keys exactly: "company", "metric", "date".
-            5. If any information is missing in the sentence, set its value to null.
+            You MUST map user metrics to Bloomberg fields using the table below.
+
+            Valid Bloomberg Metrics and Synonyms:
+            - PX_LAST: price, last price, close, latest price, current price
+            - PX_OPEN: open, opening price, price at open
+            - PX_HIGH: high, daily high, intraday high
+            - PX_LOW: low, daily low, intraday low
+            - PX_VOLUME: volume, trading volume, shares traded
+            - HIST_VOL_30D: volatility, 30-day vol, 30d vol, historic volatility
+            - HIST_VOL_90D: 90-day vol, 3-month volatility
+            - DIVIDEND_YIELD: dividend yield, div yield, yield
+            - DIVIDEND_AMOUNT: dividend, dividend payment, div amount
+            - PE_RATIO: pe ratio, price to earnings, p/e
+            - PB_RATIO: pb ratio, price to book, p/b
+            - EPS: eps, earnings per share, profit per share
+            - MARKET_CAP: market cap, market capitalization, cap
+            - BETA: beta, volatility measure, market beta
+            - YTD_RETURN: ytd return, year to date return, return ytd
+            - RETURN_1M: 1-month return, monthly return, return 1m
+            - RETURN_3M: 3-month return, quarterly return, return 3m
+            - RETURN_1Y: 1-year return, annual return, return 1y
+            - FWD_PE: forward pe, fwd pe, projected pe ratio
+            - EBITDA: ebitda, earnings before interest tax depreciation and amortization
+
+            If the user's metric is not listed, ask them to clarify by returning:
+
+            {
+            "error": "unsupported_metric"
+            }
+
+            Output schema:
+            {
+                "ticker": "<Bloomberg ticker>",
+                "metric": "<Bloomberg field>",
+                "start_date": "YYYY-MM-DD" (optional),
+                "end_date": "YYYY-MM-DD" (optional)
+            }
+
+            Do NOT hallucinate Bloomberg fields. Only use the fields shown above.
 
             Example 1:
             Input: "What was Tesla's income last year?"
@@ -103,7 +138,7 @@ class ExtractorGPT:
 }
 
 
-    def getPrompt(self, intent, query):
+    def getPrompt(self, query, intent):
         """Construct the prompt and insert the intent and query"""
         prompt = self.intentToPrompt[intent]
         prompt += f"""
@@ -124,7 +159,9 @@ class ExtractorGPT:
                 temperature=0
             )
 
-            return response.output_text.strip()
+            res = response.output_text.strip()
+            return json.loads(res)
+        
         except Exception as e:
             print(f"Error calling OpenAI API: {e}")
             return None
