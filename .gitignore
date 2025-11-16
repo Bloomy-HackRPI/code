@@ -3,8 +3,7 @@ node_modules
 */node_modules
 
 # hides virtual environments
-VirtualEnvironment
-*/VirtualEnvironment
+*Venv
 
 # hides env files
 .env
