@@ -1,87 +1,94 @@
 from transformers import AutoTokenizer, AutoModelForSequenceClassification, TrainingArguments, Trainer
-import torch
 from sklearn.preprocessing import LabelEncoder
 from datasets import Dataset
+import pickle
+import torch
 import json
-import numpy as np
+import os
 
-# 1. Load training data
-with open("train.json", "r") as f:
-    train_data = json.load(f)
+class IntentClassifier:
 
-train_texts = [item["sentence"] for item in train_data]
-train_labels = [item["intent"] for item in train_data]
+    def __init__(self):
 
-# 2. Encode labels as integers
-le = LabelEncoder()
-y_train = le.fit_transform(train_labels)
+        directory = '/data'
+        os.makedirs(directory, exist_ok=True)
 
-# 3. Create Hugging Face dataset for training
-train_dataset = Dataset.from_dict({"text": train_texts, "label": y_train})
+        self.encoder = LabelEncoder()
+        self.tokenizer = AutoTokenizer.from_pretrained("distilbert-base-uncased")
+        self.model = AutoModelForSequenceClassification.from_pretrained(
+            "distilbert-base-uncased", num_labels=3
+        )
 
-# 4. Tokenizer & Model
-tokenizer = AutoTokenizer.from_pretrained("distilbert-base-uncased")
+        if all(os.path.exists(path) for path in ['/data/model', '/data/tokenizer', '/data/encoder.pkl']):
+            self.load()
+        else:
+            self.train()
+            self.load()
 
-def tokenize(batch):
-    return tokenizer(batch["text"], padding=True, truncation=True)
+    def load(self):
+        self.tokenizer = AutoTokenizer.from_pretrained('/data/tokenizer')
+        self.model = AutoModelForSequenceClassification.from_pretrained('/data/model')
+        with open('/data/encoder.pkl', "rb") as f:
+            self.encoder = pickle.load(f)
+        print("Loaded model, tokenizer, and encoder from disk.")
 
-train_dataset = train_dataset.map(tokenize, batched=True)
-train_dataset.set_format("torch", columns=["input_ids", "attention_mask", "label"])
 
-model = AutoModelForSequenceClassification.from_pretrained(
-    "distilbert-base-uncased", num_labels=len(le.classes_)
-)
+    def save(self):
+        self.model.save_pretrained('/data/model')
+        self.tokenizer.save_pretrained('/data/tokenizer')
+        with open('/data/encoder.pkl', "wb") as f:
+            pickle.dump(self.encoder, f)
+        print(f"Model, tokenizer, and encoder saved to {'/data'}.")
 
-# 5. Training
-training_args = TrainingArguments(
-    output_dir="./results",
-    per_device_train_batch_size=2,
-    num_train_epochs=5,
-    logging_steps=1,
-    logging_dir="./logs",
-    save_strategy="epoch",   # save at each epoch
-    save_total_limit=1,      # keep only the last checkpoint
-    no_cuda=True
-)
 
-trainer = Trainer(
-    model=model,
-    args=training_args,
-    train_dataset=train_dataset
-)
+    def getIntent(self, message):
 
-trainer.train()
+        # pass message into classifier
+        # return the intent
 
-# 6. Save model & tokenizer
-model.save_pretrained("./results/final_model")
-tokenizer.save_pretrained("./results/final_model")
+        self.model.eval()
+        tokens = self.tokenizer(message, return_tensors='pt')
+        output = self.model(**tokens)
+        mostLikelyVector = torch.argmax(output.logits).item()
+        intent = self.encoder.inverse_transform([mostLikelyVector])[0]
+        return intent
 
-# 7. Load test data
-with open("test.json", "r") as f:
-    test_data = json.load(f)
 
-test_texts = [item["sentence"] for item in test_data]
-test_labels = le.transform([item["intent"] for item in test_data])
+    def train(self):
+        
+        with open('train.json', 'r') as f:
+            data = json.load(f)
 
-# 8. Compute predictions and error rate
-model.eval()
-preds = []
-for text in test_texts:
-    inputs = tokenizer(text, return_tensors="pt")
-    outputs = model(**inputs)
-    pred = torch.argmax(outputs.logits).item()
-    preds.append(pred)
+        sentences, labels = [sample['sentence'] for sample in data], [sample['intent'] for sample in data]
+        labelVectors = self.encoder.fit_transform(labels)
 
-preds = np.array(preds)
-error_rate = np.mean(preds != test_labels)
-print(f"Error rate on test set: {error_rate:.2%}")
+        dataset = Dataset.from_dict({"text": sentences, "label": labelVectors})
+        tokenizedDataset = dataset.map(self.tokenize, batched=True)
+        tokenizedDataset.set_format("torch", columns=["input_ids", "attention_mask", "label"])
 
-# 9. Predict function
-def predict_intent(text):
-    inputs = tokenizer(text, return_tensors="pt")
-    outputs = model(**inputs)
-    pred = torch.argmax(outputs.logits).item()
-    return le.inverse_transform([pred])[0]
+        training_args = TrainingArguments(
+            output_dir="./results",
+            per_device_train_batch_size=2,
+            num_train_epochs=5,
+            logging_steps=1,
+            logging_dir="./logs",
+            save_strategy="epoch",   # save at each epoch
+            save_total_limit=1,      # keep only the last checkpoint
+            no_cuda=True
+        )
 
-# Example prediction
-print(predict_intent("Show me Tesla's revenue for Q3 2025"))  # get_stat
+        trainer = Trainer(
+            model=self.model,
+            args=training_args,
+            train_dataset=tokenizedDataset
+        )
+
+        trainer.train()
+
+        # save the model weights
+        # save the tokenizer
+
+        self.save()
+
+    def tokenize(self, sample):
+        return self.tokenizer(sample["text"], padding=True, batched=True)
