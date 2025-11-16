@@ -93,6 +93,20 @@ async function sendToPhone(messageText) {
   }
 }
 
+// Function to log curl command to console
+function logCurlCommand(messageText) {
+  // Escape quotes in the message for JSON
+  const escapedMessage = messageText.replace(/"/g, '\\"');
+  
+  const curlCommand = `curl -X POST http://localhost:4000/api -H "Content-Type: application/json" -d "{\\"chat\\": \\"${escapedMessage}\\"}"`;
+  
+  console.log('\n📡 CURL COMMAND TO EXECUTE:');
+  console.log('═'.repeat(80));
+  console.log(curlCommand);
+  console.log('═'.repeat(80));
+  console.log('💡 You can copy and paste this command to test the API directly\n');
+}
+
 function startiMessagePolling(responseChannel) {
   console.log('📱 Starting iMessage polling...');
   
@@ -117,6 +131,9 @@ function startiMessagePolling(responseChannel) {
             if (!globalProcessed.has(guidId)) {
               console.log(`\n📱 New iMessage: "${msg.text}"`);
               console.log(`   Time: ${new Date(msgTime).toLocaleTimeString()}`);
+              
+              // Log the curl command to console
+              logCurlCommand(msg.text);
               
               // Just mention Bloomy with the stock ticker to trigger analysis
               await responseChannel.send(`@Bloomy ${msg.text}`);
