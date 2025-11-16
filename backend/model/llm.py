@@ -2,7 +2,6 @@ import os
 from dotenv import load_dotenv
 import openai
 
-# Load environment variables from .env
 
 class ExtractorGPT:
 
@@ -111,10 +110,10 @@ class ExtractorGPT:
 
         Intent: {intent}
         Query: {query}    
-
         """
         
         return prompt
+
 
     def sendPrompt(self, prompt):
         """Send a request to openai API"""
@@ -124,12 +123,13 @@ class ExtractorGPT:
                 input=prompt,
                 temperature=0
             )
-            # The output text is in response.output_text
+
             return response.output_text.strip()
         except Exception as e:
             print(f"Error calling OpenAI API: {e}")
             return None
     
+
     def parseParameters(self, message, intent):
         """Wrapper for all of the functions"""
         prompt = self.getPrompt(message, intent)

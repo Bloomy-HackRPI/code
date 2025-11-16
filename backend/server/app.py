@@ -19,9 +19,9 @@ def chat():
         message = data['chat']
         intent = classifier.getIntent(message)
         params = llm.parseParameters(intent, message)
-        res = BB.query(intent, params)
+        # res = BB.query(intent, params)
         
-        return jsonify(res), 200
+        return jsonify(params), 200
 
     except Exception as e:
         print(e)
