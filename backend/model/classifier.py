@@ -67,7 +67,7 @@ class IntentClassifier:
         tokenizedDataset.set_format("torch", columns=["input_ids", "attention_mask", "label"])
 
         training_args = TrainingArguments(
-            output_dir="./results",
+            output_dir="./data",
             per_device_train_batch_size=2,
             num_train_epochs=5,
             logging_steps=1,
