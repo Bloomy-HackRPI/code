@@ -21,8 +21,8 @@ def chat():
         intent = classifier.getIntent(message)
         params = llm.parseParameters(intent, message)
         # res = BB.query(intent, params)
-        
-        return jsonify(params), 200
+        resWithNlp = llm.wrapResult(params, intent)
+        return resWithNlp, 200
 
     except Exception as e:
         print(e)
