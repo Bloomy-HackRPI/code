@@ -4,7 +4,6 @@ import fs from 'fs/promises';
 import path from 'path';
 import fetch from 'node-fetch';
 
-// Initialize client first
 const client = new Client({
     intents: [
         GatewayIntentBits.Guilds,
@@ -13,13 +12,12 @@ const client = new Client({
     ]
 });
 
-// Simple cache to avoid API limits
 const sentimentCache = new Map();
-const CACHE_DURATION = 15 * 60 * 1000; // 15 minutes
+const CACHE_DURATION = 15 * 60 * 1000; 
 
-// Comprehensive company name to ticker mapping
+let isProcessingBotMessage = false;
+
 const companyToTicker = {
-    // Tech Companies
     'apple': 'AAPL',
     'microsoft': 'MSFT',
     'google': 'GOOGL',
@@ -39,26 +37,22 @@ const companyToTicker = {
     'cisco': 'CSCO',
     'qualcomm': 'QCOM',
     
-    // Semiconductor
     'tsmc': 'TSM',
     'asml': 'ASML',
     'broadcom': 'AVGO',
     
-    // Social Media & Tech
     'twitter': 'TWTR',
     'snap': 'SNAP',
     'spotify': 'SPOT',
     'pinterest': 'PINS',
     
-    // Automotive
     'ford': 'F',
     'general motors': 'GM',
     'toyota': 'TM',
     'honda': 'HMC',
     'rivian': 'RIVN',
     'lucid': 'LCID',
-    
-    // Retail
+   
     'walmart': 'WMT',
     'target': 'TGT',
     'costco': 'COST',
@@ -67,14 +61,12 @@ const companyToTicker = {
     'best buy': 'BBY',
     'mcdonalds': 'MCD',
     'starbucks': 'SBUX',
-    
-    // Entertainment
+  
     'disney': 'DIS',
     'warner bros': 'WBD',
     'paramount': 'PARA',
     'sony': 'SONY',
     
-    // Finance
     'jpmorgan': 'JPM',
     'bank of america': 'BAC',
     'wells fargo': 'WFC',
@@ -85,42 +77,36 @@ const companyToTicker = {
     'paypal': 'PYPL',
     'square': 'SQ',
     
-    // Pharma & Healthcare
     'pfizer': 'PFE',
     'moderna': 'MRNA',
     'johnson & johnson': 'JNJ',
     'merck': 'MRK',
     'eli lilly': 'LLY',
     
-    // Energy
     'exxon': 'XOM',
     'chevron': 'CVX',
     'shell': 'SHEL',
     'bp': 'BP',
     
-    // Meme Stocks
     'gamestop': 'GME',
     'amc': 'AMC',
     'bed bath beyond': 'BBBY',
     'blackberry': 'BB',
     'nokia': 'NOK',
     
-    // Crypto-related
     'coinbase': 'COIN',
     'robinhood': 'HOOD',
     'microstrategy': 'MSTR',
-    
-    // Recent trending
+ 
     'palantir': 'PLTR',
     'zoom': 'ZM',
     'peloton': 'PTON',
     'docusign': 'DOCU',
-    'block': 'SQ', // Square's new name
+    'block': 'SQ', 
     'carvana': 'CVNA',
     'beyond meat': 'BYND'
 };
 
-// Reverse mapping for display purposes
 const tickerToCompany = {
     'AAPL': 'Apple',
     'MSFT': 'Microsoft',
@@ -197,21 +183,17 @@ const tickerToCompany = {
     'BYND': 'Beyond Meat'
 };
 
-// Function to convert company name to ticker
 function convertToTicker(input) {
     const cleanInput = input.toLowerCase().trim();
     
-    // If it's already a ticker (1-5 uppercase letters)
     if (/^[A-Z]{1,5}$/.test(input)) {
         return input.toUpperCase();
     }
     
-    // Check exact matches first
     if (companyToTicker[cleanInput]) {
         return companyToTicker[cleanInput];
     }
     
-    // Check partial matches
     for (const [company, ticker] of Object.entries(companyToTicker)) {
         if (cleanInput.includes(company) || company.includes(cleanInput)) {
             console.log(`Matched "${input}" to ${ticker} (${company})`);
@@ -219,7 +201,6 @@ function convertToTicker(input) {
         }
     }
     
-    // If no match found, try to extract ticker from various formats
     const tickerMatch = input.match(/\$?([A-Z]{1,5})\b/);
     if (tickerMatch) {
         return tickerMatch[1].toUpperCase();
@@ -228,18 +209,15 @@ function convertToTicker(input) {
     return null;
 }
 
-// Function to get company name from ticker for display
 function getCompanyName(ticker) {
     return tickerToCompany[ticker] || ticker;
 }
 
-// Free Yahoo Finance API for real-time data
 async function analyzeYahooFinanceSentiment(stockTicker) {
     try {
         const companyName = getCompanyName(stockTicker);
         console.log(`Calling Yahoo Finance for ${companyName} (${stockTicker})...`);
         
-        // Get real-time price data from Yahoo Finance
         const response = await fetch(
             `https://query1.finance.yahoo.com/v8/finance/chart/${stockTicker}`
         );
@@ -259,7 +237,6 @@ async function analyzeYahooFinanceSentiment(stockTicker) {
             if (currentPrice && previousClose) {
                 const changePercent = ((currentPrice - previousClose) / previousClose) * 100;
                 
-                // Determine sentiment based on price movement
                 let sentiment;
                 let confidence;
                 
@@ -296,7 +273,6 @@ async function analyzeYahooFinanceSentiment(stockTicker) {
     }
 }
 
-// MarketAux API (free alternative with 100 requests/month)
 async function analyzeMarketAuxSentiment(stockTicker) {
     try {
         const companyName = getCompanyName(stockTicker);
@@ -322,7 +298,6 @@ async function analyzeMarketAuxSentiment(stockTicker) {
                 if (article.entities && article.entities.length > 0) {
                     const entity = article.entities[0];
                     positiveScore += entity.sentiment_score || 0;
-                    // MarketAux sentiment_score ranges from -1 to 1
                     count++;
                 }
             });
@@ -369,7 +344,7 @@ async function analyzeMarketAuxSentiment(stockTicker) {
 async function analyzeSentimentHF(text, stockTicker) {
     try {
         const companyName = getCompanyName(stockTicker);
-        console.log(`🤖 Calling Hugging Face for ${companyName} (${stockTicker})...`);
+        console.log(`Calling Hugging Face for ${companyName} (${stockTicker})...`);
         const response = await fetch(
             "https://api-inference.huggingface.co/models/mrm8488/distilroberta-finetuned-financial-news-sentiment-analysis",
             {
@@ -509,9 +484,7 @@ async function sendToDashboard(stockTicker, sentimentResult, analysisMethod) {
     }
 }
 
-// Enhanced main analysis function with caching
 async function handleStockAnalysis(input, message, responseChannel) {
-    // Convert input to ticker
     const stockTicker = convertToTicker(input);
     const companyName = getCompanyName(stockTicker);
     
@@ -522,7 +495,6 @@ async function handleStockAnalysis(input, message, responseChannel) {
     
     console.log(`ANALYZING: ${companyName} (${stockTicker}) from input: "${input}"`);
     
-    // Check cache first
     const cached = sentimentCache.get(stockTicker);
     if (cached && (Date.now() - cached.timestamp) < CACHE_DURATION) {
         console.log(`Using cached data for ${companyName} (${stockTicker})`);
@@ -539,8 +511,7 @@ _Data retrieved ${Math.round((Date.now() - cached.timestamp) / 60000)} minutes a
         `.trim();
 
         await message.channel.send(response);
-        
-        // Send cached data to dashboard too
+  
         await sendToDashboard(stockTicker, cached.data, "Cached Analysis");
         return;
     }
@@ -550,13 +521,12 @@ _Data retrieved ${Math.round((Date.now() - cached.timestamp) / 60000)} minutes a
     try {
         let sentimentResult;
         let analysisMethod = "Unknown";
-        
-        // Try free data sources in order
+       
         const dataSources = [
             {
                 name: "Yahoo Finance",
                 function: () => analyzeYahooFinanceSentiment(stockTicker),
-                enabled: true // Always available
+                enabled: true
             },
             {
                 name: "MarketAux",
@@ -589,15 +559,13 @@ _Data retrieved ${Math.round((Date.now() - cached.timestamp) / 60000)} minutes a
                 attempts.push(`${source.name}: ${error.message}`);
             }
         }
-        
-        // If all APIs failed, use smart fallback
+
         if (!sentimentResult) {
             console.log(`Using smart fallback for ${stockTicker}`);
             sentimentResult = getSmartFallback(stockTicker);
             analysisMethod = "Market Intelligence";
         }
 
-        // Cache the result
         sentimentCache.set(stockTicker, {
             data: sentimentResult,
             timestamp: Date.now(),
@@ -617,7 +585,10 @@ ${analysisMethod === "Market Intelligence" ? '_Based on current market trends an
         `.trim();
 
         await loadingMsg.edit(response);
-        await responseChannel.send(`**${message.author.username} analyzed ${companyName} (${stockTicker}):** ${sentimentResult.sentiment}`);
+        
+        if (!message.author.bot) {
+            await responseChannel.send(`**${message.author.username} analyzed ${companyName} (${stockTicker}):** ${sentimentResult.sentiment}`);
+        }
 
         await sendToDashboard(stockTicker, sentimentResult, analysisMethod);
 
@@ -627,18 +598,24 @@ ${analysisMethod === "Market Intelligence" ? '_Based on current market trends an
     }
 }
 
-// Event handlers
 client.on("ready", async () => {
-    console.log(`✅ Logged in as ${client.user.tag}`);
-    console.log("🤖 Bot is ready! Now accepts company names AND ticker symbols.");
-    console.log("💡 Try: '!stock Apple' or '!stock AAPL' or '!stock Microsoft'");
+    console.log(`Logged in as ${client.user.tag}`);
+    console.log("Bot is ready! Now accepts company names AND ticker symbols.");
+    console.log("Try: '!stock Apple' or '!stock AAPL' or '!stock Microsoft'");
 });
 
 client.on("messageCreate", async (message) => {
-    if (message.author.bot) return;
+    if (message.author.bot && message.author.id !== client.user.id) {
+        return;
+    }
+
+    if (isProcessingBotMessage && message.author.id === client.user.id) {
+        console.log(`Skipping recursive bot message processing`);
+        return;
+    }
 
     console.log(`=== NEW MESSAGE ===`);
-    console.log(`From: ${message.author.username}`);
+    console.log(`From: ${message.author.username}${message.author.bot ? ' (BLOOMY BOT)' : ''}`);
     console.log(`Content: "${message.content}"`);
 
     const responseChannel = message.guild.channels.cache.find(
@@ -650,16 +627,14 @@ client.on("messageCreate", async (message) => {
         return;
     }
 
-    // Simple ping command
-    if (message.content === "!ping") {
+    if (message.content === "!ping" || message.content === "@Bloomy") {
         console.log("Ping command detected");
         responseChannel.send("Kachow!");
         return;
     }
 
-    // Updated stock sentiment analysis command - now accepts company names
     if (message.content.startsWith('!stock ')) {
-        const input = message.content.slice(7).trim(); // Get everything after "!stock "
+        const input = message.content.slice(7).trim(); 
         if (!input) {
             await message.reply("Please provide a company name or stock ticker. Examples: `!stock Apple` or `!stock AAPL` or `!stock Microsoft`");
             return;
@@ -668,7 +643,6 @@ client.on("messageCreate", async (message) => {
         return;
     }
 
-    // IMPROVED BOT MENTION DETECTION with company name support
     const botMention = `<@${client.user.id}>`;
     const botMentionNick = `<@!${client.user.id}>`;
     
@@ -680,9 +654,14 @@ client.on("messageCreate", async (message) => {
         message.content.toLowerCase().includes('bloomy');
 
     console.log(`Is bot mentioned? ${isMentioned}`);
+    console.log(`Is Bloomy's own message? ${message.author.id === client.user.id}`);
 
     if (isMentioned) {
         console.log("Bot mentioned");
+
+        if (message.author.id === client.user.id) {
+            isProcessingBotMessage = true;
+        }
         
         let cleanedMessage = message.content
             .replace(botMention, "")
@@ -698,7 +677,6 @@ client.on("messageCreate", async (message) => {
         const userMessage = cleanedMessage || "Empty mention (no text)";
         console.log(`Extracted message: "${userMessage}"`);
 
-        // FILE WRITING - OVERWRITE the file
         try {
             const filePath = path.join(process.cwd(), 'message.txt');
             console.log(`Writing to: ${filePath}`);
@@ -710,9 +688,7 @@ client.on("messageCreate", async (message) => {
             console.error('FILE WRITE ERROR:', error);
         }
 
-        // Enhanced stock detection - try to extract company name or ticker
         if (userMessage !== "Empty mention (no text)") {
-            // Remove common question words and focus on the likely company/ticker
             const analysisInput = userMessage
                 .replace(/how('s| is)/gi, '')
                 .replace(/what('s| is)/gi, '')
@@ -730,29 +706,34 @@ client.on("messageCreate", async (message) => {
                     await handleStockAnalysis(analysisInput, message, responseChannel);
                     
                 } else {
-                    // No stock found, use normal responses
                     console.log("No stock detected, sending normal responses");
-                    await message.reply("Kachow!");
+                    
+                    if (message.author.id !== client.user.id) {
+                        await message.reply("Kachow!");
+                    }
                     
                     if (cleanedMessage && cleanedMessage !== "Empty mention (no text)") {
                         await responseChannel.send(`**${message.author.username}:** ${cleanedMessage}`);
-                    } else {
+                    } else if (message.author.id !== client.user.id) {
                         await responseChannel.send("Kachow!");
                     }
                 }
             } else {
-                // Empty message after cleaning
-                console.log("Empty message after cleaning, sending kachow");
+                console.log("Empty message after cleaning");
+                if (message.author.id !== client.user.id) {
+                    await message.reply("Kachow!");
+                    await responseChannel.send("Kachow!");
+                }
+            }
+        } else {
+            console.log("Empty mention");
+            if (message.author.id !== client.user.id) {
                 await message.reply("Kachow!");
                 await responseChannel.send("Kachow!");
             }
-        } else {
-            // Empty mention
-            console.log("Empty mention, sending kachow");
-            await message.reply("Kachow!");
-            await responseChannel.send("Kachow!");
         }
         
+        isProcessingBotMessage = false;
         console.log("Responses sent");
     } else {
         console.log("No bot mention found");
