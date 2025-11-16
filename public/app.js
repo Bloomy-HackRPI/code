@@ -113,3 +113,64 @@ document.addEventListener('DOMContentLoaded', () => {
     console.log('🚀 Bloomy Dashboard initialized');
     console.log('📊 Waiting for stock analysis data from Discord bot...');
 });
+
+// In your app.js - Add this function to update the query results
+async function updateQueryResults() {
+    try {
+        const response = await fetch('/api/latest-query');
+        const data = await response.json();
+        
+        if (data && data.hasData) {
+            displayQueryResults(data);
+        }
+        
+    } catch (error) {
+        console.error('Error updating query results:', error);
+    }
+}
+
+function displayQueryResults(data) {
+    const queryStatus = document.getElementById('queryStatus');
+    const intentSection = document.getElementById('intentSection');
+    const intentBadge = document.getElementById('intentBadge');
+    const parametersSection = document.getElementById('parametersSection');
+    const parametersList = document.getElementById('parametersList');
+    const bloombergData = document.getElementById('bloombergData');
+    const dataContent = document.getElementById('dataContent');
+
+    // Update status
+    queryStatus.innerHTML = `<i class="fas fa-sync-alt"></i><span>Latest query processed: ${new Date().toLocaleTimeString()}</span>`;
+
+    // Display intent
+    if (data.intent) {
+        intentSection.style.display = 'block';
+        intentBadge.textContent = formatIntent(data.intent);
+        intentBadge.className = 'intent-badge ' + getIntentClass(data.intent);
+    }
+
+    // Display parameters
+    if (data.params && Object.keys(data.params).length > 0) {
+        parametersSection.style.display = 'block';
+        parametersList.innerHTML = '';
+        
+        for (const [key, value] of Object.entries(data.params)) {
+            const paramItem = document.createElement('div');
+            paramItem.className = 'parameter-item';
+            paramItem.innerHTML = `
+                <span class="param-key">${formatKey(key)}:</span>
+                <span class="param-value">${value || 'N/A'}</span>
+            `;
+            parametersList.appendChild(paramItem);
+        }
+    }
+
+    // Display Bloomberg data
+    if (data.bloomberg) {
+        bloombergData.style.display = 'block';
+        dataContent.innerHTML = formatBloombergData(data.bloomberg);
+    }
+}
+
+// Add this to your existing polling
+setInterval(updateQueryResults, 3000); // Check for new queries every 3 seconds
+updateQueryResults(); // Initial call

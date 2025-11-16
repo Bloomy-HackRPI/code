@@ -83,21 +83,40 @@
                 </div>
             </div>
 
-            <!-- Instructions -->
-            <div class="instructions-card">
-                <h3>How to Use</h3>
-                <div class="instructions">
-                    <div class="instruction-item">
-                        <i class="fas fa-discord"></i>
-                        <span>Go to your Discord server</span>
+            <!-- Query Results Card -->
+            <div class="query-results-card">
+                <h3>Query Results</h3>
+                <div class="query-content" id="queryContent">
+                    <div class="query-status" id="queryStatus">
+                        <i class="fas fa-comment-dots"></i>
+                        <span>Ready to process queries from Discord/iMessage</span>
                     </div>
-                    <div class="instruction-item">
-                        <i class="fas fa-terminal"></i>
-                        <span>Type <code>!stock TICKER</code> or mention Bloomy with a stock symbol</span>
+                    
+                    <!-- Intent Display -->
+                    <div class="intent-section" id="intentSection" style="display: none;">
+                        <div class="result-label">
+                            <i class="fas fa-brain"></i>
+                            <span>Detected Intent:</span>
+                        </div>
+                        <div class="intent-badge" id="intentBadge"></div>
                     </div>
-                    <div class="instruction-item">
-                        <i class="fas fa-sync"></i>
-                        <span>This dashboard will update automatically</span>
+
+                    <!-- Parameters Display -->
+                    <div class="parameters-section" id="parametersSection" style="display: none;">
+                        <div class="result-label">
+                            <i class="fas fa-list"></i>
+                            <span>Extracted Parameters:</span>
+                        </div>
+                        <div class="parameters-list" id="parametersList"></div>
+                    </div>
+
+                    <!-- Bloomberg Data Display -->
+                    <div class="bloomberg-data" id="bloombergData" style="display: none;">
+                        <div class="result-label">
+                            <i class="fas fa-terminal"></i>
+                            <span>Bloomberg Data:</span>
+                        </div>
+                        <div class="data-content" id="dataContent"></div>
                     </div>
                 </div>
             </div>
