@@ -73,21 +73,21 @@ async function sendToPhone(messageText) {
     
     const result = await imessageBot.send(YOUR_PHONE_NUMBER, messageText);
     
-    console.log('Message sent to phone successfully!');
+    console.log('✅ Message sent to phone successfully!');
     return result;
   } catch (error) {
-    console.error('Failed to send message to phone:', error.message);
+    console.error('❌ Failed to send message to phone:', error.message);
     
     try {
-      console.log('Trying alternative send method...');
+      console.log('🔄 Trying alternative send method...');
       const result = await imessageBot.send(YOUR_PHONE_NUMBER, {
         text: messageText,
         attachments: []
       });
-      console.log('Alternative method worked!');
+      console.log('✅ Alternative method worked!');
       return result;
     } catch (secondError) {
-      console.error('Both methods failed:', secondError.message);
+      console.error('❌ Both methods failed:', secondError.message);
       throw secondError;
     }
   }
@@ -118,8 +118,9 @@ function startiMessagePolling(responseChannel) {
               console.log(`\n📱 New iMessage: "${msg.text}"`);
               console.log(`   Time: ${new Date(msgTime).toLocaleTimeString()}`);
               
-              await responseChannel.send(`@Bloomy 📱 iMessage: "${msg.text}"`);
-              console.log('Forwarded to Discord!');
+              // Just mention Bloomy with the stock ticker to trigger analysis
+              await responseChannel.send(`@Bloomy ${msg.text}`);
+              console.log('Triggered stock analysis in Discord!');
               
               if (guidId) globalProcessed.add(guidId);
               foundNewMessage = true;
@@ -140,156 +141,111 @@ function startiMessagePolling(responseChannel) {
   }, 3000);
 }
 
-let pendingAnalysis = new Map();
+// Track the last bot message for each stock request
+const lastBotMessages = new Map();
 
-discordClient.on('messageCreate', async (message) => {
-  if (message.author.bot && message.author.id === discordClient.user.id) {
-    if (message.content.includes('🔍 Analyzing') && message.content.includes('...')) {
-      console.log(`\n📊 Stock analysis started: "${message.content}"`);
-      
-      const match = message.content.match(/Analyzing (.+?) \((.+?)\)/);
-      if (match) {
-        const companyName = match[1];
-        const stockTicker = match[2];
-        
-        console.log(`Waiting for analysis completion for ${companyName} (${stockTicker})`);
-        
-        pendingAnalysis.set(message.id, {
-          stockTicker,
-          companyName,
-          startTime: Date.now(),
-          loadingMessage: message
-        });
-      }
-    }
-  }
-});
-
+// Listen for ALL bot messages and track the most recent one
 discordClient.on('messageCreate', async (message) => {
   if (message.author.bot && message.author.id === discordClient.user.id) {
     if (discordProcessed.has(message.id)) return;
     
-    const hasConfidenceScores = 
-      message.content.includes('Confidence Scores:') &&
-      message.content.includes('Positive:') &&
-      message.content.includes('Negative:') &&
-      message.content.includes('Neutral:') &&
-      message.content.includes('Powered by:');
+    console.log(`\n🤖 Bot message detected: "${message.content.substring(0, 100)}..."`);
     
-    if (hasConfidenceScores) {
-      console.log(`\nComplete analysis detected with confidence scores!`);
-
-      const analysisText = extractCompleteAnalysis(message.content);
+    // Extract stock ticker from the message if possible
+    let stockTicker = null;
+    
+    // Look for stock ticker in various message formats
+    if (message.content.includes('analyzed')) {
+      const match = message.content.match(/analyzed .+?\((.+?)\):/);
+      if (match) stockTicker = match[1];
+    } else if (message.content.includes('Analyzing')) {
+      const match = message.content.match(/Analyzing .+?\((.+?)\)/);
+      if (match) stockTicker = match[1];
+    } else if (message.content.includes('(AAPL)') || message.content.includes('(NVDA)') || message.content.includes('(AVGO)')) {
+      // Look for common tickers in parentheses
+      const match = message.content.match(/\(([A-Z]{1,5})\)/);
+      if (match) stockTicker = match[1];
+    }
+    
+    // If we found a stock ticker, track this as the latest message for that stock
+    if (stockTicker) {
+      console.log(`📊 Tracking message for stock: ${stockTicker}`);
+      lastBotMessages.set(stockTicker, {
+        messageId: message.id,
+        content: message.content,
+        timestamp: Date.now()
+      });
       
-      if (analysisText) {
+      // Wait 6 seconds to ensure this is the final message, then send it
+      setTimeout(async () => {
+        const currentLastMessage = lastBotMessages.get(stockTicker);
+        if (currentLastMessage && currentLastMessage.messageId === message.id) {
+          console.log(`✅ Sending final analysis for ${stockTicker} to phone...`);
+          
+          // Clean the message content
+          let cleanMessage = message.content
+            .replace(/<@!?\d+>/g, '')
+            .replace(/<@&\d+>/g, '')
+            .replace(/<#\d+>/g, '')
+            .replace(/\*\*(.*?)\*\*/g, '$1')
+            .replace(/\*(.*?)\*/g, '$1')
+            .replace(/_(.*?)_/g, '$1')
+            .replace(/`{1,3}(.*?)`{1,3}/g, '$1')
+            .trim();
+          
+          discordProcessed.add(message.id);
+          await sendToPhone(cleanMessage);
+          
+          // Clean up
+          lastBotMessages.delete(stockTicker);
+        }
+      }, 1000); // 6 seconds to ensure it's the final message
+    } else {
+      // For non-stock messages, check if it's just a mention response
+      const isJustMention = 
+        message.content.startsWith('@Bloomy') || 
+        (message.content.includes('@Bloomy') && message.content.split(' ').length <= 2);
+      
+      // Skip messages that are just "@Bloomy" or "@Bloomy AVGO" - these are the echo we want to avoid
+      if (isJustMention) {
+        console.log(`🚫 Skipping mention echo: "${message.content}"`);
         discordProcessed.add(message.id);
-        console.log('📤 Sending complete analysis to phone...');
-        await sendToPhone(analysisText);
+        return;
       }
       
-      cleanPendingAnalysis();
+      // Only send truly simple responses like "Kachow!"
+      console.log(`💬 Simple bot response: "${message.content}"`);
+      
+      let cleanMessage = message.content
+        .replace(/<@!?\d+>/g, '')
+        .replace(/<@&\d+>/g, '')
+        .replace(/<#\d+>/g, '')
+        .replace(/\*\*(.*?)\*\*/g, '$1')
+        .replace(/\*(.*?)\*/g, '$1')
+        .replace(/_(.*?)_/g, '$1')
+        .replace(/`{1,3}(.*?)`{1,3}/g, '$1')
+        .trim();
+      
+      if (cleanMessage.length > 0) {
+        discordProcessed.add(message.id);
+        await sendToPhone(`Bloomy: ${cleanMessage}`);
+      }
     }
   }
 });
 
-function extractCompleteAnalysis(messageContent) {
-  try {
-    const lines = messageContent.split('\n');
-    let analysisData = {
-      priceAnalysis: '',
-      overallSentiment: '',
-      confidenceScores: [],
-      poweredBy: ''
-    };
-    
-    for (let i = 0; i < lines.length; i++) {
-      const line = lines[i].trim();
-    
-      if (line.includes('Real-time price analysis for') || line.includes('Market analysis for')) {
-        analysisData.priceAnalysis = line;
-      }
-      
-      if (line.includes('Overall Sentiment:')) {
-        analysisData.overallSentiment = line.replace('**Overall Sentiment:**', '').trim();
-      }
-      
-      if (line.includes('Positive:') && line.includes('%')) {
-        analysisData.confidenceScores.push(line.replace('• 📈', '').trim());
-      }
-      if (line.includes('Negative:') && line.includes('%')) {
-        analysisData.confidenceScores.push(line.replace('• 📉', '').trim());
-      }
-      if (line.includes('Neutral:') && line.includes('%')) {
-        analysisData.confidenceScores.push(line.replace('• 📊', '').trim());
-      }
-      
-      if (line.includes('Powered by:')) {
-        analysisData.poweredBy = line.replace('*📊 Powered by:*', '').trim();
-      }
-    }
-   
-    if (analysisData.priceAnalysis && analysisData.overallSentiment && analysisData.confidenceScores.length === 3) {
-      const formattedAnalysis = `
-${analysisData.priceAnalysis}
-Overall Sentiment: ${analysisData.overallSentiment}
-Confidence Scores:
-• 📈 ${analysisData.confidenceScores[0]}
-• 📉 ${analysisData.confidenceScores[1]}
-• 📊 ${analysisData.confidenceScores[2]}
-
-📊 Powered by: ${analysisData.poweredBy}
-${analysisData.poweredBy.includes('Yahoo') ? 'Real market data analysis' : 'Based on current market trends and analysis'}
-      `.trim();
-      
-      console.log('Formatted analysis for phone:', formattedAnalysis);
-      return formattedAnalysis;
-    }
-  } catch (error) {
-    console.error('Error parsing analysis:', error);
-  }
-  
-  return null;
-}
-
-function cleanPendingAnalysis() {
+// Clean up old entries periodically
+setInterval(() => {
   const now = Date.now();
-  const timeout = 2 * 60 * 1000; 
+  const tenMinutes = 10 * 60 * 1000;
   
-  for (const [messageId, analysis] of pendingAnalysis.entries()) {
-    if (now - analysis.startTime > timeout) {
-      console.log(`Removing timed out analysis for ${analysis.stockTicker}`);
-      pendingAnalysis.delete(messageId);
+  for (const [stockTicker, data] of lastBotMessages.entries()) {
+    if (now - data.timestamp > tenMinutes) {
+      console.log(`🧹 Cleaning up old stock entry: ${stockTicker}`);
+      lastBotMessages.delete(stockTicker);
     }
   }
-}
-
-discordClient.on('messageCreate', async (message) => {
-  if (message.author.bot && message.author.id === discordClient.user.id) {
-    if (discordProcessed.has(message.id)) return;
-    
-    if (message.content.includes('Confidence Scores:') || 
-        message.content.includes('🔍 Analyzing')) {
-      return;
-    }
-
-    console.log(`\nSimple bot response: "${message.content}"`);
-    
-    let cleanMessage = message.content
-      .replace(/<@!?\d+>/g, '')
-      .replace(/<@&\d+>/g, '')
-      .replace(/<#\d+>/g, '')
-      .replace(/\*\*(.*?)\*\*/g, '$1')
-      .replace(/\*(.*?)\*/g, '$1')
-      .replace(/_(.*?)_/g, '$1')
-      .replace(/`{1,3}(.*?)`{1,3}/g, '$1')
-      .trim();
-    
-    if (cleanMessage.length > 0) {
-      discordProcessed.add(message.id);
-      await sendToPhone(`Bloomy: ${cleanMessage}`);
-    }
-  }
-});
+}, 5 * 60 * 1000); // Clean every 5 minutes
 
 discordClient.on('error', (error) => {
   console.error('Discord client error:', error);
